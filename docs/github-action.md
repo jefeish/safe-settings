@@ -55,3 +55,83 @@ jobs:
           CONFIG_PATH: safe-settings
           DEPLOYMENT_CONFIG_FILE: ${{ github.workspace }}/safe-settings/deployment-settings.yml
 ```
+
+## Troubleshooting
+
+### "HttpError: Not Found" Error (Even When Files Exist)
+
+If you're getting a 404 Not Found error even though your configuration files exist in the correct location, this is typically a **GitHub App permissions issue**. Here's how to diagnose and fix:
+
+#### 1. Verify GitHub App Installation
+- Go to your organization settings → GitHub Apps → Installed GitHub Apps
+- Ensure your safe-settings app is installed and has access to the `.github` repository
+- If using a personal account, check Settings → Applications → Installed GitHub Apps
+
+#### 2. Check Repository Permissions
+Your GitHub App needs these permissions:
+- **Repository permissions:**
+  - Contents: Read & Write (to read config files and update repos)
+  - Metadata: Read (to access repository information)
+  - Administration: Write (to modify repository settings)
+  - Pull requests: Write (for creating PR comments)
+  - Issues: Write (for creating error issues)
+
+#### 3. Verify App Installation Scope
+- If the app is installed on "Selected repositories", make sure `.github` repository is included
+- Consider installing on "All repositories" for easier management
+
+#### 4. Check Environment Variables
+Ensure these match your setup:
+```yaml
+env:
+  GH_ORG: your-organization-name        # Must match exactly
+  ADMIN_REPO: .github                   # Repository containing configs  
+  CONFIG_PATH: safe-settings           # Directory containing config files
+```
+
+#### 5. Debug with Additional Logging
+Add this environment variable to enable debug logging:
+```yaml
+env:
+  LOG_LEVEL: debug
+```
+
+### "Cannot read properties of undefined (reading 'data')" Error  
+This error was caused by a bug in error handling and has been fixed. Update your safe-settings code to the latest version.
+
+### Webhook Warning: "repository_ruleset is not a known webhook name"
+This is a harmless warning that can be ignored.
+
+## Quick Verification Steps
+
+Before running the workflow, verify your setup:
+
+1. **Test GitHub App Access:**
+   ```bash
+   # Using GitHub CLI (if available)
+   gh api repos/OWNER/.github/contents/safe-settings/settings.yml
+   ```
+
+2. **Verify Files Exist:**
+   - Navigate to `https://github.com/YOUR_ORG/.github/tree/main/safe-settings`
+   - Confirm `settings.yml` and `deployment-settings.yml` are present
+
+3. **Check App Permissions:**
+   - Go to `https://github.com/organizations/YOUR_ORG/settings/installations` 
+   - Click on your safe-settings app
+   - Verify it has access to the `.github` repository
+   - Check that required permissions are granted
+
+4. **Test Locally (Optional):**
+   ```bash
+   # Clone and test locally
+   git clone https://github.com/github/safe-settings
+   cd safe-settings
+   npm install
+   # Set environment variables
+   export GH_ORG="your-org"
+   export ADMIN_REPO=".github" 
+   export CONFIG_PATH="safe-settings"
+   # ... other env vars
+   npm run full-sync
+   ```
