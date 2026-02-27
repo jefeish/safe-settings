@@ -225,7 +225,21 @@ module.exports = (robot, { getRouter }, Settings = require('./lib/settings')) =>
 
     if (installations.length > 0) {
       const installation = installations[0]
+      robot.log.info(`Found installation for account: ${installation.account.login} (${installation.account.type})`)
+      robot.log.info(`Target admin repo: ${installation.account.login}/${env.ADMIN_REPO}`)
+      
       const github = await robot.auth(installation.id)
+      
+      // Test access to admin repo before proceeding
+      try {
+        await github.repos.get({ owner: installation.account.login, repo: env.ADMIN_REPO })
+        robot.log.info(`Successfully verified access to admin repo`)
+      } catch (error) {
+        robot.log.error(`Cannot access admin repo ${installation.account.login}/${env.ADMIN_REPO}: ${error.message}`)
+        robot.log.error(`Ensure the GitHub App is installed on the admin repository with proper permissions`)
+        throw new Error(`Admin repository access denied: ${installation.account.login}/${env.ADMIN_REPO}`)
+      }
+      
       const context = {
         payload: {
           installation
@@ -236,6 +250,7 @@ module.exports = (robot, { getRouter }, Settings = require('./lib/settings')) =>
       }
       return syncAllSettings(nop, context)
     }
+    robot.log.error('No GitHub App installations found')
     return null
   }
 
